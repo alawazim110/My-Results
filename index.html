@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Reading & Task Assessment System</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            direction: ltr;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .selector-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        label {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        select, input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .class-section {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            page-break-after: always;
+        }
+
+        .class-title {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 8px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .class-title span:first-child {
+            text-align: left;
+        }
+
+        .class-title span:nth-child(2) {
+            text-align: center;
+            flex-grow: 1;
+            font-weight: bold;
+        }
+
+        .report-header-title {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            direction: rtl;
+        }
+
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 8px 4px;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .score-input {
+            width: 50px;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .score-high { color: #27ae60; font-weight: bold; }
+        .score-medium { color: #e67e22; font-weight: bold; }
+        .score-low { color: #e74c3c; font-weight: bold; }
+
+        .status-box {
+            text-align: center;
+            padding: 30px;
+            font-size: 1.1rem;
+            color: #666;
+            background: #fff;
+            border-radius: 8px;
+        }
+
+        .btn-action {
+            padding: 10px 18px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            height: fit-content;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-action:hover { background: #219653; }
+
+        @media print {
+            .selector-card, .no-print { display: none !important; }
+            body { background: white; padding: 0; }
+            .class-section { box-shadow: none; padding: 0; margin-bottom: 0; page-break-after: always; }
+            table, th, td { border: 1px solid #000; }
+            .score-input { border: none; background: transparent; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="reportTitleHeader" class="report-header-title">Reading Assessment Report</h1>
+
+    <div class="selector-card">
+        <div class="form-group" style="flex: 2;">
+            <label for="taskSelect">Story / Task Records:</label>
+            <select id="taskSelect" onchange="switchTaskRecord(this.value)"></select>
+        </div>
+
+        <div class="form-group" style="flex: 2;">
+            <label for="reportTitleInput">Story/Task Title (Edit):</label>
+            <input type="text" id="reportTitleInput" placeholder="e.g. The Boy Who Cried Wolf" oninput="onManualTitleChange(this.value)">
+        </div>
+
+        <div class="form-group">
+            <label for="stageSelect">Grade / Stage:</label>
+            <select id="stageSelect" onchange="onStageChange()">
+                <option value="">-- All Grades --</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="classSelect">Class / Section:</label>
+            <select id="classSelect" onchange="renderFilteredData()" disabled>
+                <option value="">-- All Classes --</option>
+            </select>
+        </div>
+
+        <button class="btn-action no-print" onclick="fetchLatestScoresFromCloud()">📥 Fetch Scores</button>
+        <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; height: fit-content;">Print Report 🖨️</button>
+    </div>
+
+    <div id="dataContainer">
+        <div class="status-box">Loading records...</div>
+    </div>
+</div>
+
+<script>
+    const JSONBIN_BIN_ID = '6ac9f3c3ffd5d160535e6864';
+    const JSONBIN_API_KEY = '$2a$10$S9BUwNoVsbjpzJ659y7/zuIjqGqTr8pRpt4nUrssLgTO/93p15hLm';
+
+    let tasksRecords = {};
+    let currentTaskKey = "General Task";
+    let currentRawData = [];
+
+    function formatStoryTitle(title) {
+        if (!title) return "General Task";
+        let cleaned = decodeURIComponent(title).trim().replace(/[-_]/g, ' ');
+        return cleaned.replace(/\s+/g, ' ');
+    }
+
+    function getNormalizedKey(title) {
+        return formatStoryTitle(title).toLowerCase();
+    }
+
+    function transformNestedData(data) {
+        const result = [];
+        if (!data || typeof data !== 'object') return result;
+
+        function traverse(obj, stageName = "", className = "") {
+            for (const key in obj) {
+                const value = obj[key];
+
+                if (Array.isArray(value)) {
+                    for (const student of value) {
+                        result.push({
+                            stage: stageName || "General",
+                            className: className || key,
+                            name: student.name || student["Student Name"] || "",
+                            nationalId: student.id || student.nationalId || student["National ID"] || "",
+                            scores: student.scores ? student.scores.map(s => s || "") : ["", "", "", "", ""]
+                        });
+                    }
+                } else if (typeof value === 'object' && value !== null) {
+                    if (!stageName) {
+                        traverse(value, key, className);
+                    } else if (!className) {
+                        traverse(value, stageName, key);
+                    } else {
+                        traverse(value, stageName, className);
+                    }
+                }
+            }
+        }
+
+        traverse(data);
+        return result;
+    }
+
+    async function loadClassesData() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskFromUrl = urlParams.get('task') || urlParams.get('story') || urlParams.get('title');
+        if (taskFromUrl) {
+            currentTaskKey = formatStoryTitle(taskFromUrl);
+        }
+
+        try {
+            const res = await fetch('./students.json');
+            if (!res.ok) throw new Error("Could not fetch students.json");
+            const data = await res.json();
+            
+            tasksRecords[currentTaskKey] = transformNestedData(data);
+            localStorage.setItem("classesData", JSON.stringify(data));
+
+            loadLocalScores();
+            initSystem();
+
+        } catch (err) {
+            console.warn("Error loading students.json, trying localStorage...", err);
+            const localData = localStorage.getItem("classesData");
+            if (localData) {
+                try {
+                    const parsed = JSON.parse(localData);
+                    tasksRecords[currentTaskKey] = transformNestedData(parsed);
+                } catch(e) {}
+            }
+            loadLocalScores();
+            initSystem();
+        }
+    }
+
+    function saveLocalScores() {
+        const saveData = {};
+        for (const [taskKey, students] of Object.entries(tasksRecords)) {
+            saveData[taskKey] = students.map(s => ({
+                nationalId: s.nationalId,
+                scores: s.scores
+            }));
+        }
+        localStorage.setItem("savedUserScores", JSON.stringify(saveData));
+    }
+
+    function loadLocalScores() {
+        const saved = localStorage.getItem("savedUserScores");
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                for (const [taskKey, studentsList] of Object.entries(parsed)) {
+                    if (tasksRecords[taskKey]) {
+                        studentsList.forEach(savedStudent => {
+                            const target = tasksRecords[taskKey].find(s => String(s.nationalId) === String(savedStudent.nationalId));
+                            if (target) {
+                                target.scores = savedStudent.scores;
+                            }
+                        });
+                    }
+                }
+            } catch(e) {}
+        }
+    }
+
+    async function fetchLatestScoresFromCloud() {
+        try {
+            const getRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                headers: { 'X-Master-Key': JSONBIN_API_KEY }
+            });
+            if (!getRes.ok) throw new Error("Could not fetch data from JSONBin");
+            
+            const getData = await getRes.json();
+            const records = getData.record.records || [];
+            let hasUpdates = false;
+
+            const rawBaseData = JSON.parse(localStorage.getItem("classesData") || "{}");
+
+            records.forEach(record => {
+                const rawStoryTitle = record.story || "General Task";
+                const formattedTitle = formatStoryTitle(rawStoryTitle);
+                const normKey = getNormalizedKey(formattedTitle);
+                
+                let existingKey = Object.keys(tasksRecords).find(k => getNormalizedKey(k) === normKey);
+
+                if (!existingKey) {
+                    tasksRecords[formattedTitle] = transformNestedData(rawBaseData);
+                    existingKey = formattedTitle;
+                    hasUpdates = true;
+                }
+
+                const targetStudent = tasksRecords[existingKey].find(s => String(s.nationalId) === String(record.id));
+                if (targetStudent) {
+                    if (!targetStudent.scores) targetStudent.scores = ["", "", "", "", ""];
+                    while (targetStudent.scores.length < 5) targetStudent.scores.push("");
+
+                    const newScore = record.score !== undefined && record.score !== "" ? Number(record.score) : "";
+                    if (newScore === "") return;
+
+                    let lastFilledScore = "";
+                    for (let i = 4; i >= 0; i--) {
+                        if (targetStudent.scores[i] !== "" && targetStudent.scores[i] !== null && targetStudent.scores[i] !== undefined) {
+                            lastFilledScore = targetStudent.scores[i];
+                            break;
+                        }
+                    }
+
+                    if (lastFilledScore !== "" && Number(lastFilledScore) === Number(newScore)) {
+                        return; 
+                    }
+
+                    for (let i = 0; i < 5; i++) {
+                        if (targetStudent.scores[i] === "" || targetStudent.scores[i] === null || targetStudent.scores[i] === undefined || targetStudent.scores[i] === 0) {
+                            targetStudent.scores[i] = newScore;
+                            hasUpdates = true;
+                            break;
+                        }
+                    }
+                }
+            });
+
+            if (hasUpdates) {
+                saveLocalScores();
+                updateTaskDropdown();
+                renderFilteredData();
+                alert("Scores fetched and updated successfully!");
+            } else {
+                alert("No new unique scores found or all score slots are already filled.");
+            }
+        } catch (e) {
+            console.error("Error fetching scores from JSONBin:", e);
+            alert("An error occurred while fetching scores.");
+        }
+    }
+
+    function initSystem() {
+        if (!tasksRecords[currentTaskKey]) {
+            const norm = getNormalizedKey(currentTaskKey);
+            const found = Object.keys(tasksRecords).find(k => getNormalizedKey(k) === norm);
+            if (found) {
+                currentTaskKey = found;
+            } else {
+                tasksRecords[currentTaskKey] = [];
+            }
+        }
+
+        updateTaskDropdown();
+        loadCurrentTaskData(currentTaskKey);
+    }
+
+    function updateTaskDropdown() {
+        const taskSelect = document.getElementById('taskSelect');
+        taskSelect.innerHTML = '';
+        
+        const seenNormKeys = new Set();
+
+        Object.keys(tasksRecords).forEach(taskName => {
+            const norm = getNormalizedKey(taskName);
+            if (!seenNormKeys.has(norm)) {
+                seenNormKeys.add(norm);
+                const opt = document.createElement('option');
+                opt.value = taskName;
+                opt.innerText = "📖 " + formatStoryTitle(taskName);
+                if (norm === getNormalizedKey(currentTaskKey)) opt.selected = true;
+                taskSelect.appendChild(opt);
+            }
+        });
+    }
+
+    function loadCurrentTaskData(taskName) {
+        const norm = getNormalizedKey(taskName);
+        const actualKey = Object.keys(tasksRecords).find(k => getNormalizedKey(k) === norm) || taskName;
+        
+        currentTaskKey = actualKey;
+        currentRawData = tasksRecords[currentTaskKey] || [];
+        const formattedName = formatStoryTitle(currentTaskKey);
+
+        document.title = `${formattedName} - Reading Report`;
+        document.getElementById('reportTitleHeader').innerText = formattedName;
+        document.getElementById('reportTitleInput').value = formattedName;
+
+        initStageDropdown();
+        renderFilteredData();
+    }
+
+    function switchTaskRecord(newTaskName) {
+        loadCurrentTaskData(newTaskName);
+    }
+
+    function onManualTitleChange(newTitle) {
+        const formattedTitle = formatStoryTitle(newTitle.trim() || "Untitled Task");
+        const normNew = getNormalizedKey(formattedTitle);
+        const normOld = getNormalizedKey(currentTaskKey);
+        
+        if (normNew !== normOld) {
+            tasksRecords[formattedTitle] = tasksRecords[currentTaskKey];
+            delete tasksRecords[currentTaskKey];
+            currentTaskKey = formattedTitle;
+            
+            document.title = `${currentTaskKey} - Reading Report`;
+            document.getElementById('reportTitleHeader').innerText = currentTaskKey;
+            updateTaskDropdown();
+            saveLocalScores();
+        }
+    }
+
+    function initStageDropdown() {
+        const stageSelect = document.getElementById('stageSelect');
+        const stages = [...new Set(currentRawData.map(item => String(item.stage || '')))].filter(Boolean);
+
+        stageSelect.innerHTML = '<option value="">-- All Grades --</option>';
+        stages.forEach(stage => {
+            const isTest = stage.toLowerCase().includes("test");
+            stageSelect.innerHTML += `<option value="${stage}">${isTest ? "🧪 " + stage : stage}</option>`;
+        });
+
+        document.getElementById('classSelect').disabled = true;
+        document.getElementById('classSelect').innerHTML = '<option value="">-- All Classes --</option>';
+    }
+
+    function onStageChange() {
+        const selectedStage = document.getElementById('stageSelect').value;
+        const classSelect = document.getElementById('classSelect');
+
+        classSelect.innerHTML = '<option value="">-- All Classes --</option>';
+
+        if (selectedStage) {
+            const filteredClasses = [...new Set(currentRawData
+                .filter(item => String(item.stage) === selectedStage)
+                .map(item => String(item.className || '')))].filter(Boolean);
+
+            filteredClasses.forEach(c => {
+                const isTest = c.toLowerCase().includes("test");
+                classSelect.innerHTML += `<option value="${c}">${isTest ? "🧪 " + c : "Class " + c}</option>`;
+            });
+            classSelect.disabled = false;
+        } else {
+            classSelect.disabled = true;
+        }
+
+        renderFilteredData();
+    }
+
+    function renderFilteredData() {
+        const selectedStage = document.getElementById('stageSelect').value;
+        const selectedClass = document.getElementById('classSelect').value;
+
+        let filtered = currentRawData;
+
+        if (selectedStage) {
+            filtered = filtered.filter(item => String(item.stage) === selectedStage);
+        }
+        if (selectedClass) {
+            filtered = filtered.filter(item => String(item.className) === selectedClass);
+        }
+
+        renderTables(filtered);
+    }
+
+    function updateScore(studentId, scoreIndex, newValue) {
+        const student = currentRawData.find(s => String(s.nationalId) === String(studentId));
+        if (student) {
+            if (!student.scores) student.scores = ["", "", "", "", ""];
+            while (student.scores.length < 5) student.scores.push("");
+
+            student.scores[scoreIndex] = newValue !== "" ? parseFloat(newValue) : "";
+            saveLocalScores();
+
+            const progress = calculateProgress(student.scores);
+            const progressCell = document.getElementById(`progress-${studentId}`);
+            if (progressCell) {
+                progressCell.innerText = progress !== null ? (progress > 0 ? `+${progress}%` : `${progress}%`) : "-";
+                progressCell.className = getProgressClass(progress);
+            }
+        }
+    }
+
+    function calculateProgress(scores) {
+        const validScores = scores.map(s => Number(s)).filter(s => s > 0);
+        if (validScores.length < 2) return null;
+
+        const firstScore = validScores[0];
+        const lastScore = validScores[validScores.length - 1];
+
+        return (((lastScore - firstScore) / firstScore) * 100).toFixed(1);
+    }
+
+    function getProgressClass(progress) {
+        if (progress === null) return 'score-medium';
+        if (progress > 0) return 'score-high';
+        if (progress == 0) return 'score-medium';
+        return 'score-low';
+    }
+
+    function renderTables(data) {
+        const container = document.getElementById('dataContainer');
+        container.innerHTML = '';
+
+        if (data.length === 0) {
+            container.innerHTML = '<div class="status-box">No records found for this story.</div>';
+            return;
+        }
+
+        const groupedByClass = data.reduce((acc, student) => {
+            const key = `${student.stage}___${student.className}`;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(student);
+            return acc;
+        }, {});
+
+        const formattedTaskName = formatStoryTitle(currentTaskKey);
+
+        for (const [groupKey, students] of Object.entries(groupedByClass)) {
+            const [stagePart, classPart] = groupKey.split('___');
+
+            let tableHTML = `
+                <div class="class-section">
+                    <div class="class-title">
+                        <span>${stagePart} - Class ${classPart}</span>
+                        <span>${formattedTaskName}</span>
+                        <span style="visibility: hidden;">${stagePart} - Class ${classPart}</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Student Name</th>
+                                <th>National ID</th>
+                                <th>Score 1</th>
+                                <th>Score 2</th>
+                                <th>Score 3</th>
+                                <th>Score 4</th>
+                                <th>Score 5</th>
+                                <th>Progress (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            students.forEach((student, index) => {
+                const scores = student.scores || ["", "", "", "", ""];
+                const progress = calculateProgress(scores);
+                const progressText = progress !== null ? (progress > 0 ? `+${progress}%` : `${progress}%`) : "-";
+                const isTestUser = String(student.nationalId) === "5555" || String(student.stage).includes("Test");
+
+                const scoresCellsHTML = scores.map((score, idx) => `
+                    <td>
+                        <input type="number" min="0" max="100" class="score-input" 
+                               value="${score !== undefined && score !== null ? score : ''}" 
+                               oninput="updateScore('${student.nationalId}', ${idx}, this.value)">
+                    </td>
+                `).join('');
+
+                tableHTML += `
+                    <tr style="${isTestUser ? 'background-color: #fef9c3;' : ''}">
+                        <td>${index + 1}</td>
+                        <td style="text-align: right; font-weight: 500;">${student.name}</td>
+                        <td>${student.nationalId}</td>
+                        ${scoresCellsHTML}
+                        <td id="progress-${student.nationalId}" class="${getProgressClass(progress)}">${progressText}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML += tableHTML;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        loadClassesData();
+    });
+</script>
+
+</body>
+</html>
