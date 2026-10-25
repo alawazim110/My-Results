@@ -190,7 +190,8 @@
             </select>
         </div>
 
-        <button id="fetchBtn" class="no-print btn-fetch" onclick="fetchDataFromGoogleSheets()">🔄 Fetching data...</button>
+        <!-- تم تحديث النص هنا ليصبح خالياً من النقاط في الحالة العادية -->
+        <button id="fetchBtn" class="no-print btn-fetch" onclick="fetchDataFromGoogleSheets()">🔄 Fetching data</button>
         <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; height: fit-content;">Print Report 🖨️</button>
     </div>
 
@@ -1054,17 +1055,16 @@
         const taskFromUrl = urlParams.get('task') || urlParams.get('story') || urlParams.get('title');
         if (taskFromUrl) currentTaskKey = formatStoryTitle(taskFromUrl);
 
-        // الاعتماد على البيانات المدمجة في الكود مباشرة
         tasksRecords[currentTaskKey] = transformNestedData(baseStructureData);
 
         await fetchDataFromGoogleSheets();
         initSystem();
     }
 
-    // جلب الدرجات وروابط الفيديوهات ديناميكياً من قوقل شيت
+    // جلب الدرجات وروابط الفيديوهات ديناميكياً من قوقل شيت (تحديث دالة الجلب لتغيير حالة الزر بالرمز المطلوب)
     async function fetchDataFromGoogleSheets() {
         const btn = document.getElementById('fetchBtn');
-        if(btn) btn.innerText = "⏳ Fetching data...";
+        if(btn) btn.innerText = "⏳⌛ Fetching data..."; // تظهر الساعة الرملية والنقاط أثناء الجلب
         
         try {
             const res = await fetch(APPS_SCRIPT_URL);
@@ -1137,7 +1137,7 @@
         } catch (e) {
             console.error("Error fetching data from Sheet:", e);
         } finally {
-            if(btn) btn.innerText = "🔄 Fetching data...";
+            if(btn) btn.innerText = "🔄 Fetching data"; // تعود الأيقونة خالية من النقاط فور الانتهاء
         }
     }
 
