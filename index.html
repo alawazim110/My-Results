@@ -190,7 +190,7 @@
             </select>
         </div>
 
-        <button id="fetchBtn" class="no-print btn-fetch" onclick="fetchDataFromGoogleSheets()">🔄 جلب الدرجات من الشيت</button>
+        <button id="fetchBtn" class="no-print btn-fetch" onclick="fetchDataFromGoogleSheets()">🔄 Fetching data...</button>
         <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; height: fit-content;">Print Report 🖨️</button>
     </div>
 
@@ -201,7 +201,7 @@
 
 <script>
     // 1. ضع هنا رابط النشر (Web App URL) الخاص بـ Google Apps Script
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkHLFvzni-Tvq215PHZK_r_cMld2g4yPxaODgOIGWFvsMxKMhkT5C_XJhT1N_Ctqjh/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2_0CTfmEEnuIX80amPuri6M1VYgonGJPbp8iWYBju4OdnbbUsuGSITzbBQFrHi-w/exec';
 
     // 2. بيانات الطلاب مدمجة وثابتة مباشرة هنا بدلاً من ملف JSON خارجي
     const baseStructureData = 
@@ -1064,7 +1064,7 @@
     // جلب الدرجات وروابط الفيديوهات ديناميكياً من قوقل شيت
     async function fetchDataFromGoogleSheets() {
         const btn = document.getElementById('fetchBtn');
-        if(btn) btn.innerText = "⏳ fetching grades...";
+        if(btn) btn.innerText = "⏳ Fetching data...";
         
         try {
             const res = await fetch(APPS_SCRIPT_URL);
@@ -1137,7 +1137,7 @@
         } catch (e) {
             console.error("Error fetching data from Sheet:", e);
         } finally {
-            if(btn) btn.innerText = "🔄 جلب الدرجات من الشيت";
+            if(btn) btn.innerText = "🔄 Fetching data...";
         }
     }
 
